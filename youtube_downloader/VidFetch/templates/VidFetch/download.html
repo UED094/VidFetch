@@ -2,6 +2,19 @@
 <html>
 <head>
     <title>YouTube Downloader</title>
+    <style>
+        .progress-bar {
+            width: 100%;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .progress-bar-fill {
+            height: 20px;
+            background-color: #428bca;
+            border-radius: 4px;
+            transition: width 0.2s ease-in-out;
+        }
+    </style>
 </head>
 <body>
     <h1>YouTube Downloader</h1>
@@ -10,6 +23,55 @@
         {{ form.as_p }}
         <input type="submit" value="Download">
     </form>
-    <p>{{ message }}</p>
+    <div class="progress-bar">
+        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0;"></div>
+    </div>
+    <p id="progress-text"></p>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const progressBar = document.getElementById('progress-bar-fill');
+            const progressText = document.getElementById('progress-text');
+
+            const form = document.querySelector('form');
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '');
+                xhr.responseType = 'blob';
+
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const percentage = (event.loaded / event.total) * 100;
+                        progressBar.style.width = `${percentage}%`;
+                        progressText.textContent = `${percentage.toFixed(2)}%`;
+                    }
+                });
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        const blob = new Blob([xhr.response], { type: 'video/mp4' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'video.mp4';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        progressBar.style.width = '0';
+                        progressText.textContent = '';
+                    } else {
+                        progressText.textContent = 'Error occurred during download.';
+                    }
+                };
+
+                const formData = new FormData(form);
+                xhr.send(formData);
+            });
+        });
+    </script>
 </body>
 </html>
